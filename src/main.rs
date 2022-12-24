@@ -1,9 +1,12 @@
+mod vec3;
+
 use image::ImageBuffer;
 
 fn main() {
     listing_1()
 
 }
+
 
 fn listing_1() {
     let image_width = 1024;
