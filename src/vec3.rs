@@ -1,14 +1,14 @@
-use std::{ops::{AddAssign, MulAssign, DivAssign}, fmt::Debug};
 
+use std::{ops::{AddAssign, MulAssign, DivAssign}, fmt::Debug};
 
 #[derive(Debug)]
 pub struct Vec3 {
-    x: f64,
-    y: f64,
-    z: f64
+    pub x: f64,
+    pub y: f64,
+    pub z: f64
 }
 
-pub fn vec3(x: f64, y: f64, z: f64) -> Vec3 {
+pub fn vec3_(x: f64, y: f64, z: f64) -> Vec3 {
     Vec3{x, y, z}
 }
 
@@ -68,22 +68,22 @@ mod tests {
 
     #[test]
     fn test_add_assign() {
-        let mut v1 = vec3(1., 2., 3.);
-        let v2 = vec3(4., 3., 2.);
-        let expect = vec3(5., 5., 5.);
+        let mut v1 = vec3_(1., 2., 3.);
+        let v2 = vec3_(4., 3., 2.);
+        let expect = vec3_(5., 5., 5.);
         v1 += v2;
         assert_eq!(v1, expect);
     }
 
     #[test]
     fn test_length_squared() {
-        let v1 = vec3(1., 2., 3.);
+        let v1 = vec3_(1., 2., 3.);
         assert_eq!(v1.length_squared(), 14.0);
     }
 
     #[test]
     fn test_length() {
-        let v1 = vec3(3., 4., 0.);
+        let v1 = vec3_(3., 4., 0.);
         assert_eq!(v1.length(), 5.0 );
     }
 

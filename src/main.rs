@@ -1,10 +1,13 @@
+
+mod vec3_img;
 mod vec3;
 
 use image::ImageBuffer;
+use crate::vec3::vec3_;
 
 fn main() {
-    listing_1()
-
+    // listing_1()
+    listing_7()
 }
 
 
@@ -32,4 +35,23 @@ fn listing_1() {
     // neighboring pixels only differ buy at most 1 in each
     // of the color components
     img.save("generated_images/listing_1.jpg").unwrap();
+}
+
+
+fn listing_7() {
+    let img_width = 1024;
+    let img_height = 1024;
+
+    let img =
+        ImageBuffer::from_fn(img_width, img_height,
+        |i, j|{
+            vec3_((i as f64) / ((img_width - 1) as f64),
+                  (j as f64) / ((img_height - 1) as f64),
+                0.25).to_rgb()
+        }
+
+    );
+
+    img.save("generated_images/listing_7.png").unwrap();
+
 }
