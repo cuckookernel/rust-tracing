@@ -12,6 +12,10 @@ pub fn vec3_(x: f64, y: f64, z: f64) -> Vec3 {
     Vec3{x, y, z}
 }
 
+pub fn color(r: f64, g: f64, b: f64) -> Vec3 {
+    Vec3{x:r, y:g, z:b}
+}
+
 impl Vec3 {
     pub fn length_squared(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z

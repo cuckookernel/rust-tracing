@@ -5,15 +5,17 @@ mod ray;
 
 use image::ImageBuffer;
 use vec3::Point3;
-use crate::vec3::{vec3_, Vec3};
-use crate::ray::{Ray, hit_sphere};
+use crate::vec3::{vec3_, Vec3, color};
+use crate::ray::{Ray, hit_sphere_12, hit_sphere_10, hit_sphere_11};
+use crate::vec3_img::RGB;
+
 use std::time::Instant;
 
 
 fn main() {
     // listing_1();
     // listing_7()
-    listing_9_10()
+    listing_9_12(12)
 }
 
 
@@ -53,31 +55,55 @@ fn listing_7() {
         |i, j|{
             vec3_((i as f64) / ((img_width - 1) as f64),
                   (j as f64) / ((img_height - 1) as f64),
-                0.25).to_rgb()
+                  0.25).to_rgb()
         }
 
     );
     img.save("generated_imgs/listing_7.png").unwrap();
 }
 
-fn listing_9_10() {
-    fn ray_color(ray: &Ray) -> Vec3 {
+fn listing_9_12(listing_num: i32) {
+    fn ray_color(ray: &Ray) -> RGB {
         let unit_dir = ray.dir.unit_vector();
         let t = 0.5 * (unit_dir.y + 1.0);
-        return (1.0 - t) * vec3_(1.0, 1.0, 1.0) + t * vec3_(0.5, 0.7, 1.);
+        let rgb_vec = (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.);
+        return rgb_vec.to_rgb()
     }
 
-    fn ray_color_withs_sphere(ray: &Ray) -> Vec3 {
-        if hit_sphere(&vec3_(0., 0., -1.), 0.5, &ray) {
-            vec3_(1.0, 1.0, 0.5)
+    fn ray_color_with_sphere(ray: &Ray) -> RGB {
+        if hit_sphere_10(&vec3_(0., 0., -1.), 0.5, &ray) {
+            color(1.0, 1.0, 0.5).to_rgb()
         } else {
             ray_color(ray)
         }
+    }
 
+    fn ray_color_with_shaded_sphere_11(ray: &Ray) -> RGB {
+        let t = hit_sphere_11(&vec3_(0., 0., -1.), 0.5, &ray);
+
+        if t > 0. {
+            let normal = (ray.at(t) - vec3_(0., 0., -1.)).unit_vector();
+            let rgb_vec = 0.5 * color(normal.x, normal.y, normal.z);
+            rgb_vec.to_rgb()
+        } else {
+            ray_color(ray)
+        }
+    }
+
+    fn ray_color_with_shaded_sphere_12(ray: &Ray) -> RGB {
+        let t = hit_sphere_12(&vec3_(0., 0., -1.), 0.5, &ray);
+
+        if t > 0. {
+            let normal = (ray.at(t) - vec3_(0., 0., -1.)).unit_vector();
+            let rgb_vec = 0.5 * color(normal.x, normal.y, normal.z);
+            rgb_vec.to_rgb()
+        } else {
+            ray_color(ray)
+        }
     }
 
     let aspect_ratio = 16.0 / 9.0;
-    let img_width = 400;
+    let img_width = 2000;
     let img_height = ((img_width as f64) / aspect_ratio) as u32;
 
     let viewport_height = 2.0;
@@ -96,19 +122,23 @@ fn listing_9_10() {
          |i, j| {
             let u = i as f64 / (img_width - 1) as f64;
             let v = (img_height - j) as f64 / (img_height - 1) as f64;
-            let r = Ray{origin: origin.clone(),
+            let ray = Ray{origin: origin.clone(),
                              dir: &lower_left_corner + u * &horizontal + v * &vertical - &origin};
-            // listing_9
-            // ray_color(&r).to_rgb()
-            // listing 10
-            ray_color_withs_sphere(&r).to_rgb()
+
+            match listing_num {
+                9 => ray_color(&ray),
+                10 => ray_color_with_sphere(&ray),
+                11 => ray_color_with_shaded_sphere_11(&ray),
+                12 => ray_color_with_shaded_sphere_11(&ray),
+                _ => panic!("Can't do listing_num {}", listing_num)
+            }
         });
     let elapsed = now.elapsed();
 
     let mps = (img_width * img_height) as f64 / 1.0e6;
-    println!("Elapsed: {:.2?} ({:.2?} per megapixel)", elapsed,  elapsed.as_secs_f64() /mps);
+    println!("Elapsed: {:.2?} ({:.2?} ms / megapixel)", elapsed,  elapsed.as_secs_f64() * 1000.0 /mps);
 
     //img.save("generated_imgs/listing_9.png").unwrap();
-    img.save("generated_imgs/listing_10.png").unwrap();
+    img.save(format!("generated_imgs/listing_{}.png", listing_num)).unwrap();
 
 }
