@@ -1,5 +1,5 @@
 
-use std::{ops::{AddAssign, MulAssign, DivAssign, Add, Mul, Div, Sub}, fmt::Debug};
+use std::{ops::{AddAssign, MulAssign, DivAssign, Add, Mul, Div, Sub, Neg}, fmt::Debug};
 
 #[derive(Debug, Clone)]
 pub struct Vec3 {
@@ -173,6 +173,13 @@ impl DivAssign<f64> for Vec3 {
         self.x /= rhs;
         self.y /= rhs;
         self.z /= rhs;
+    }
+}
+
+impl Neg for &Vec3 {
+    type Output = Vec3;
+    fn neg(self) -> Self::Output {
+        Vec3{x: -self.x, y: -self.y, z: -self.z}
     }
 }
 
