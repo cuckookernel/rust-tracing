@@ -16,6 +16,10 @@ pub fn color(r: f64, g: f64, b: f64) -> Vec3 {
     Vec3{x:r, y:g, z:b}
 }
 
+pub fn point3(x: f64, y: f64, z: f64) -> Vec3 {
+    Vec3{x, y, z}
+}
+
 impl Vec3 {
     pub fn length_squared(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
@@ -183,6 +187,13 @@ impl Neg for &Vec3 {
     }
 }
 
+impl Neg for Vec3 {
+    type Output = Vec3;
+    fn neg(self) -> Self::Output {
+        Vec3{x: -self.x, y: -self.y, z: -self.z}
+    }
+}
+
 impl PartialEq for Vec3 {
     fn eq(&self, rhs: &Self) -> bool {
         (self.x == rhs.x) && (self.y == rhs.y) && (self.z == rhs.z)
@@ -237,3 +248,4 @@ mod tests {
 }
 
 pub type Point3 = Vec3;
+pub type Color = Vec3;
