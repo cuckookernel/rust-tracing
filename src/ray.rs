@@ -11,4 +11,8 @@ impl Ray {
     pub fn at(&self, t: f64) -> Point3 {
         &self.origin + &self.dir * t
     }
+
+    pub fn new(origin: &Vec3, dir: &Vec3) -> Self {
+        Self{origin: origin.clone(), dir: dir.clone()}
+    }
 }

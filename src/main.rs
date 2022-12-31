@@ -9,34 +9,29 @@ mod camera;
 
 use hittable::HittableList;
 use image::ImageBuffer;
-use vec3::Point3;
+use rand::rngs::ThreadRng;
 use crate::rtweekend::{INF, random_unif, random_unif_1, degrees_to_radians, clamp};
 use crate::hittable::{HitRecord, hittable_list, Hittable, hittable_single};
-use crate::vec3::{vec3_, color, Color, point3};
+use crate::vec3::{vec3_, color, Color, point3, Vec3, Point3};
 use crate::ray::{Ray};
 use crate::sphere::{hit_sphere_10, hit_sphere_11, hit_sphere_12, make_sphere};
-use crate::vec3_img::RGB;
 use crate::camera::Camera;
+use crate::vec3_img::color_no_gamma;
 
 use std::time::Instant;
 
 
 
 fn main() {
-    let listing_num = 30;
+    let listing_num = 36;
 
-    if listing_num == 1 {
-        listing_1()
-    } else if listing_num == 7 {
-        listing_7()
-    } else if 9 <= listing_num && listing_num < 24 {
-        listing_9_24(listing_num)
-    } else if listing_num >= 30 {
-        listing_30(listing_num);
-    } else if listing_num < 0 {
-        _use_some_funs()
-    } else {
-        println!("listing_num: {} out of range", listing_num)
+    match  listing_num {
+        1 => listing_1(),
+        7 => listing_7(),
+        n if n>=9 && n <= 24 => listing_9_24(n),
+        n if n >= 30 => listing_30_36(n),
+        n  if n < 0 => _use_some_funs(),
+        _ =>  panic!("listing_num: {} out of range", listing_num)
     }
 }
 
@@ -84,7 +79,8 @@ fn listing_7() {
     img.save("generated_imgs/listing_7.png").unwrap();
 }
 
-fn listing_30(listing_num: i32) {
+fn listing_30_36(listing_num: i32) {
+    // sampling many rays per Pixel
     let world = two_sphere_world();
 
     let aspect_ratio = 16.0 / 9.0;
@@ -107,19 +103,57 @@ fn listing_30(listing_num: i32) {
                               / (img_height - 1) as f64;
                 let ray = camera.get_ray(u, v);
 
-                pixel_color += &ray_color_vec_world(&ray, &world)
+                match listing_num {
+                   30 => pixel_color += &ray_color_hittable_world_24(&ray, &world),
+                   33 => pixel_color += &ray_color_hittable_world_33(&ray, &mut rng, &world),
+                   36 => pixel_color += &ray_color_hittable_world_36(&ray, &mut rng, &world),
+                   _ => panic!("can't do listing_num: {}", listing_num)
+                }
+
             }
             pixel_color.to_rgb_sampled(samples_per_pixel)
         });
     let elapsed = now.elapsed();
 
     let mps = (img_width * img_height) as f64 / 1.0e6;
-    println!("Elapsed: {:.2?} ({:.2?} ms / megapixel)", elapsed,  elapsed.as_secs_f64() * 1000.0 /mps);
+    println!("Elapsed: {:.2?} ({:.0?} ms / megapixel)", elapsed,  elapsed.as_secs_f64() * 1000.0 /mps);
 
     //img.save("generated_imgs/listing_9.png").unwrap();
     img.save(format!("generated_imgs/listing_{}.png", listing_num)).unwrap();
 
 }
+
+
+fn ray_color_hittable_world_36(ray: &Ray, rng: &mut ThreadRng,
+    world: &dyn Hittable) -> Color {
+    // listing 36: fixing shadow acne
+    let mut rec = HitRecord{..Default::default()};
+
+    if world.hit(ray, 0.001, INF, &mut rec) {
+    let target = &rec.p + &rec.normal + &Vec3::rand_in_sphere_1(rng);
+        let reflected_ray = Ray::new(&rec.p, &(target - &rec.p));
+        0.5 * &ray_color_hittable_world_33(&reflected_ray, rng, world)
+    } else {
+        ray_color_background(ray)
+    }
+}
+
+
+
+fn ray_color_hittable_world_33(ray: &Ray, rng: &mut ThreadRng,
+    world: &dyn Hittable) -> Color {
+    // listing 33: with reflection from diffuse materials
+    let mut rec = HitRecord{..Default::default()};
+
+    if world.hit(ray, 0., INF, &mut rec) {
+    let target = &rec.p + &rec.normal + &Vec3::rand_in_sphere_1(rng);
+        let reflected_ray = Ray::new(&rec.p, &(target - &rec.p));
+        0.5 * &ray_color_hittable_world_33(&reflected_ray, rng, world)
+    } else {
+        ray_color_background(ray)
+    }
+}
+
 
 fn listing_9_24(listing_num: i32) {
     let world = two_sphere_world();
@@ -148,14 +182,15 @@ fn listing_9_24(listing_num: i32) {
             let ray = Ray{origin: origin.clone(),
                                dir: &lower_left_corner + u * &horizontal + v * &vertical - &origin};
 
-            match listing_num {
+            let color = match listing_num {
                 9 => ray_color_background(&ray),
                 10 => ray_color_with_sphere(&ray),
                 11 => ray_color_with_shaded_sphere_11(&ray),
                 12 => ray_color_with_shaded_sphere_12(&ray),
-                24 => ray_color_hittable_world(&ray, &world),
+                24 => ray_color_hittable_world_24(&ray, &world),
                 _ => panic!("Can't do listing_num {}", listing_num)
-            }
+            };
+            color.to_rgb()
         });
     let elapsed = now.elapsed();
 
@@ -174,77 +209,67 @@ fn two_sphere_world() -> HittableList {
     ])
 }
 
-fn ray_color_hittable_world(ray: &Ray, world: &dyn Hittable) -> RGB {
-    let mut rec = HitRecord{..Default::default()};
-
-    if world.hit(ray, 0., INF, &mut rec) {
-        (0.5 * (&rec.normal + color(1., 1., 1.))).to_rgb()
-    } else {
-        ray_color_background(ray)
-    }
-}
-
-fn ray_color_vec_world(ray: &Ray, world: &dyn Hittable) -> Color {
+fn ray_color_hittable_world_24(ray: &Ray, world: &dyn Hittable) -> Color {
+    // listing 24
     let mut rec = HitRecord{..Default::default()};
 
     if world.hit(ray, 0., INF, &mut rec) {
         0.5 * (&rec.normal + color(1., 1., 1.))
     } else {
-        ray_color_vec_bground(ray)
+        ray_color_background(ray)
     }
 }
 
-
-fn ray_color_vec_bground(ray: &Ray) -> Color {
+fn ray_color_background(ray: &Ray) -> Color {
     let unit_dir = ray.dir.unit_vector();
     let t = 0.5 * (unit_dir.y + 1.0);
     let rgb_vec = (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.);
     return rgb_vec
 }
 
-fn ray_color_background(ray: &Ray) -> RGB {
-    ray_color_vec_bground(ray).to_rgb()
-}
 
-fn ray_color_with_sphere(ray: &Ray) -> RGB {
+fn ray_color_with_sphere(ray: &Ray) -> Color {
     if hit_sphere_10(&vec3_(0., 0., -1.), 0.5, &ray) {
-        color(1.0, 1.0, 0.5).to_rgb()
+        color(1.0, 1.0, 0.5)
     } else {
         ray_color_background(ray)
     }
 }
 
-fn ray_color_with_shaded_sphere_11(ray: &Ray) -> RGB {
+fn ray_color_with_shaded_sphere_11(ray: &Ray) -> Color {
+    // listing 11
     let t = hit_sphere_11(&vec3_(0., 0., -1.), 0.5, &ray);
 
     if t > 0. {
         let normal = (ray.at(t) - vec3_(0., 0., -1.)).unit_vector();
         let rgb_vec = 0.5 * color(normal.x, normal.y, normal.z);
-        rgb_vec.to_rgb()
+        rgb_vec
     } else {
         ray_color_background(ray)
     }
 }
 
-fn ray_color_with_shaded_sphere_12(ray: &Ray) -> RGB {
+fn ray_color_with_shaded_sphere_12(ray: &Ray) -> Color {
+    // listing 12
     let t = hit_sphere_12(&vec3_(0., 0., -1.), 0.5, &ray);
 
     if t > 0. {
         let normal = (ray.at(t) - vec3_(0., 0., -1.)).unit_vector();
         let rgb_vec = 0.5 * color(normal.x, normal.y, normal.z);
-        rgb_vec.to_rgb()
+        rgb_vec
     } else {
         ray_color_background(ray)
     }
 }
 
 fn _use_some_funs() {
-    // function to use some other functions and avoid `xyz` is never used
+    // function to use some other functions and avoid warnings `xyz` is never used
     let mut rng = rand::thread_rng();
-    println!( "{} {} {}",
+    println!( "{} {} {} {:?}",
              degrees_to_radians(90.0),
              random_unif(&mut rng, 0., 1.0),
-             clamp(3.0, 1.0, 2.0));
+             clamp(3.0, 1.0, 2.0),
+             color_no_gamma(1.0, 1.0, 1.0));
 
     let sph1 = make_sphere(point3(0., 0., 0.), 1.0);
     let hittable_list = hittable_single(sph1);

@@ -1,5 +1,8 @@
 
 use std::{ops::{AddAssign, MulAssign, DivAssign, Add, Mul, Div, Sub, Neg}, fmt::Debug};
+use crate::rtweekend::{random_unif, random_unif_1};
+use rand::rngs::ThreadRng;
+
 
 #[derive(Debug, Clone)]
 pub struct Vec3 {
@@ -204,10 +207,30 @@ impl Eq for Vec3 {}
 
 
 impl Vec3 {
-    pub fn unit_vector(&self) -> Vec3 {
-        return self.clone() / self.length()
+    pub fn unit_vector(&self) -> Self {
+        self.clone() / self.length()
+    }
+
+    pub fn rand_unif(rng: &mut ThreadRng, min: f64, max: f64) -> Self {
+        vec3_(random_unif(rng, min, max),
+              random_unif(rng, min, max),
+              random_unif(rng, min, max))
+    }
+
+    pub fn rand_in_sphere_1(rng: &mut ThreadRng) -> Self {
+        loop {
+            let vec = vec3_(random_unif_1(rng),
+                                  random_unif_1(rng),
+                                  random_unif_1(rng));
+            if vec.length_squared() >= 1.0 {
+                continue
+            } else {
+                return vec
+            }
+        }
     }
 }
+
 
 
 #[cfg(test)]

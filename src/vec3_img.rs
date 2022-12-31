@@ -18,8 +18,17 @@ impl Vec3 {
     }
 }
 
-
 fn color(r: f64, g: f64, b: f64) -> RGB {
+    // listing 35
+    Rgb([(255.999 * r.sqrt()) as u8,
+         (255.999 * g.sqrt()) as u8,
+         (255.999 * b.sqrt()) as u8])
+
+}
+
+
+pub fn color_no_gamma(r: f64, g: f64, b: f64) -> RGB {
+    // before listing 35
     Rgb([(255.999 * r) as u8,
          (255.999 * g) as u8,
          (255.999 * b) as u8])
