@@ -110,7 +110,19 @@ impl Sub<&Vec3> for Vec3 {
     }
 }
 
+// component wise multiply: &vec1 * &vec2
+impl Mul<&Vec3> for &Vec3 {
+    type Output = Vec3;
+    fn mul(self, rhs: &Vec3) -> Vec3 {
+        Vec3{x: self.x * rhs.x,
+             y: self.y * rhs.y,
+             z: self.z * rhs.z}
+    }
+}
 
+
+
+// scalar multiply &vec * c
 impl Mul<f64> for &Vec3 {
     type Output = Vec3;
     fn mul(self, rhs: f64) -> Vec3 {
@@ -120,6 +132,7 @@ impl Mul<f64> for &Vec3 {
     }
 }
 
+// scalar multiply: c * &vec
 impl Mul<&Vec3> for f64 {
     type Output = Vec3;
     fn mul(self, rhs: &Vec3) -> Vec3 {
@@ -129,6 +142,8 @@ impl Mul<&Vec3> for f64 {
     }
 }
 
+
+// scalar multiply: c * vec
 impl Mul<Vec3> for f64 {
     type Output = Vec3;
     fn mul(self, rhs: Vec3) -> Vec3 {
@@ -138,7 +153,7 @@ impl Mul<Vec3> for f64 {
     }
 }
 
-
+// scalar divide &vec / c
 impl Div<f64> for &Vec3 {
     type Output = Vec3;
     fn div(self, rhs: f64) -> Vec3 {
@@ -228,6 +243,32 @@ impl Vec3 {
                 return vec
             }
         }
+    }
+
+    pub fn rand_hemisphere(rng: &mut ThreadRng, normal: &Vec3) -> Self {
+        // listing 39
+        let in_unit_sphere = Vec3::rand_in_sphere_1(rng);
+
+        if in_unit_sphere.dot(normal) > 0.0 {
+            in_unit_sphere
+        } else {
+            -in_unit_sphere
+        }
+    }
+
+    pub fn random_unit_vector(rng: &mut ThreadRng) -> Self {
+        Self::rand_in_sphere_1(rng).unit_vector()
+    }
+
+    // listing 45
+    pub fn near_zero(&self) -> bool {
+        let eps = 1e-8;
+        return (self.x.abs() < eps) & (self.y.abs() < eps) & (self.z.abs() < eps)
+    }
+
+    // listing 47
+    pub fn reflect(&self, normal: &Vec3) -> Vec3 {
+        return self - &(2.0 * self.dot(normal) * normal);
     }
 }
 

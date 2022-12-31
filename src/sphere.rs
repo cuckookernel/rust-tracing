@@ -1,17 +1,26 @@
 
 use crate::hittable::{Hittable, HitRecord};
-use crate::vec3::Point3;
+use crate::vec3::{Point3};
 use crate::ray::Ray;
 use crate::rtweekend::Shared;
+use crate::material::{Material, Lambertian};
 
 // listing 15
 pub struct Sphere {
     center: Point3,
-    radius: f64
+    radius: f64,
+    material: Shared<dyn Material>
 }
 
-pub fn make_sphere(center: Point3, radius: f64) -> Shared<Sphere> {
-    Shared::new(Sphere{center, radius})
+impl Sphere {
+    pub fn new(center: Point3, radius: f64, material: Shared<dyn Material>) -> Shared<Sphere> {
+        Shared::new(Sphere{center, radius, material})
+    }
+
+    pub fn new_cr(center: Point3, radius: f64) -> Shared<Sphere> {
+        let material = Lambertian::new(1., 1., 1.);
+        Shared::new(Sphere{center, radius, material})
+    }
 }
 
 impl Hittable for Sphere {
@@ -37,6 +46,7 @@ impl Hittable for Sphere {
             rec.p = ray.at(rec.t);
             let outward_normal= (&rec.p - &self.center) / self.radius;
             rec.set_face_normal(ray, &outward_normal);
+            rec.material = self.material.clone();
             true
         }
 

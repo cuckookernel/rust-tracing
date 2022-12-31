@@ -2,13 +2,25 @@
 use crate::vec3::{Point3, Vec3};
 use crate::ray::Ray;
 use crate::rtweekend::Shared;
+use crate::material::{Material, Lambertian};
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
+    pub material: Shared<dyn Material>,
     pub t: f64,
     pub front_face: bool
+}
+
+impl Default for HitRecord {
+    fn default() -> Self {
+        Self{p: Point3::default(),
+             normal: Vec3::default(),
+             material: Lambertian::new(1., 1., 1.),
+             t: 0.,
+             front_face: false}
+    }
 }
 
 impl HitRecord {
