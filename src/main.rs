@@ -24,7 +24,7 @@ use std::time::Instant;
 
 
 fn main() {
-    let listing_num = 49;
+    let listing_num = 55;
 
     match  listing_num {
         1 => listing_1(),
@@ -41,8 +41,9 @@ fn main() {
 fn listing_30_(listing_num: i32) {
     // sampling many rays per Pixel
     let world = match listing_num {
-        _ if listing_num <= 48 => two_sphere_world(),
-        _ if listing_num >= 49 => three_sphere_world_50(),
+        n if n <= 48 => two_sphere_world(),
+        n if n >= 49 && n < 55 => three_sphere_world_50(),
+        n if n >= 55 => three_sphere_world_50(),
         _ => panic!("Can't make world for {}", listing_num)
     };
 
@@ -72,9 +73,8 @@ fn listing_30_(listing_num: i32) {
                    33 => pixel_color += &ray_color_33(&ray, &mut rng, &world),
                    36 => pixel_color += &ray_color_36(&ray, &mut rng, &world, depth),
                    38 => pixel_color += &ray_color_38(&ray, &mut rng, &world, depth),
-                   49 => pixel_color += &ray_color_49(&ray, &mut rng, &world, depth),
-
-                   _ => panic!("can't do listing_num: {}", listing_num)
+                   n if n >= 49  => pixel_color += &ray_color_49(&ray, &mut rng, &world, depth),
+                   _ => panic!("can't trace rays for listing_num: {}", listing_num)
                 }
 
             }
@@ -92,11 +92,28 @@ fn listing_30_(listing_num: i32) {
 
 }
 
+
+fn three_sphere_world_52() -> HittableList {
+    let material_ground = Lambertian::new(0.8, 0.8, 0.0);
+    let material_center = Lambertian::new(0.7, 0.3, 0.3);
+    let material_left = Metal::new(&color(0.8, 0.8, 0.8), 0.3);
+    let material_right = Metal::new(&color(0.8, 0.6, 0.2), 1.0);
+
+    let world = hittable_list(&vec![
+        Sphere::new(point3( 0., -100.5, -1.0), 100.0, material_ground),
+        Sphere::new(point3( 0.,   0.0, -1.0), 0.5, material_center),
+        Sphere::new(point3(-1.,   0.0, -1.0), 0.5, material_left),
+        Sphere::new(point3( 1.,   0.0, -1.0), 0.5, material_right)
+    ]);
+    world
+}
+
+
 fn three_sphere_world_50() -> HittableList {
     let material_ground = Lambertian::new(0.8, 0.8, 0.0);
     let material_center = Lambertian::new(0.7, 0.3, 0.3);
-    let material_left = Metal::new(0.8, 0.8, 0.8);
-    let material_right = Metal::new(0.8, 0.6, 0.2);
+    let material_left = Metal::new_rgb(0.8, 0.8, 0.8);
+    let material_right = Metal::new_rgb(0.8, 0.6, 0.2);
 
     let world = hittable_list(&vec![
         Sphere::new(point3( 0., -100.5, -1.0), 100.0, material_ground),
@@ -328,11 +345,12 @@ fn ray_color_with_shaded_sphere_12(ray: &Ray) -> Color {
 fn _use_some_funs() {
     // function to use some other functions and avoid warnings `xyz` is never used
     let mut rng = rand::thread_rng();
-    println!( "{} {} {} {:?}",
+    println!( "{} {} {} {:?} {}",
              degrees_to_radians(90.0),
              random_unif(&mut rng, 0., 1.0),
              clamp(3.0, 1.0, 2.0),
-             color_no_gamma(1.0, 1.0, 1.0));
+             color_no_gamma(1.0, 1.0, 1.0),
+             three_sphere_world_52().objects.len());
 
     let sph1 = Sphere::new_cr(point3(0., 0., 0.), 1.0);
     let hittable_list = hittable_single(sph1);

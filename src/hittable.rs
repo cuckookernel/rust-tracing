@@ -38,6 +38,7 @@ pub trait Hittable {
 
 type SharedHittable = Shared<dyn Hittable>;
 
+
 pub struct HittableList {
     pub objects: Vec<SharedHittable>
 }

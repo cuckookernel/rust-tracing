@@ -270,6 +270,15 @@ impl Vec3 {
     pub fn reflect(&self, normal: &Vec3) -> Vec3 {
         return self - &(2.0 * self.dot(normal) * normal);
     }
+
+    // listing 53
+    pub fn refract(&self, n: &Vec3, etai_over_etat: f64) -> Vec3 {
+        // assume self is unit vector
+        let cos_theta = (-self.dot(n)).min(1.0);
+        let r_out_perp = etai_over_etat * (self + &(cos_theta * n));
+        let r_out_para = (-(1.0 - r_out_perp.length_squared()).abs()) * n;
+        r_out_perp + &r_out_para
+    }
 }
 
 
