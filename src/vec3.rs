@@ -275,16 +275,48 @@ impl Vec3 {
     pub fn refract(&self, n: &Vec3, etai_over_etat: f64) -> Vec3 {
         // assume self is unit vector
         let cos_theta = (-self.dot(n)).min(1.0);
+        // println!("cos theta: {}", cos_theta);
         let r_out_perp = etai_over_etat * (self + &(cos_theta * n));
-        let r_out_para = (-(1.0 - r_out_perp.length_squared()).abs()) * n;
+        let r_out_para = (-(1.0 - r_out_perp.length_squared()).abs().sqrt()) * n;
         r_out_perp + &r_out_para
     }
 }
 
+/*
+R' = R'_s + R'_p
+   = sin(th') * s + cos(th') * (-n)
+   = (eta / eta') * sin(th) * s  + cos(th') * (-n)
+
+R  = sin(th) * s + cos(th)*(-n)
+R + cos(th)* n
+
+
+*/
+
+// #[test]
+pub(crate) fn test_refract() {
+    let uv = vec3_(11.0, -1.0, 0.0).unit_vector();
+    let n = vec3_(0.0, 1.0, 0.0);
+
+    let eta = 1.0;
+    let eta_p = 1.5;
+    let eta_ratio = eta / eta_p;
+    let refracted = uv.refract(&n, eta_ratio);
+
+    let cos_theta = uv.dot(&n);
+    let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+
+    let cos_theta_p = refracted.unit_vector().dot(&n);
+    let sin_theta_p = (1.0 - cos_theta_p * cos_theta_p).sqrt();
+
+    let diff = sin_theta_p * eta_p - sin_theta * eta;
+    eprintln!("diff: {}", diff);
+    assert_eq!(diff, 0.0)
+}
 
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     #[test]
@@ -317,6 +349,8 @@ mod tests {
         assert_eq!(uy.cross(&uz), ux);
         assert_eq!(uz.cross(&ux), uy);
     }
+
+
 
 }
 

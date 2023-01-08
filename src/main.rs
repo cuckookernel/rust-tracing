@@ -10,49 +10,64 @@ mod material;
 
 use hittable::HittableList;
 use image::ImageBuffer;
+use material::Dielectric;
 use rand::rngs::ThreadRng;
-use crate::rtweekend::{INF, random_unif, random_unif_1, degrees_to_radians, clamp};
+use crate::rtweekend::{INF, random_unif, random_unif_1, degrees_to_radians, clamp, Shared};
 use crate::hittable::{HitRecord, hittable_list, Hittable, hittable_single};
 use crate::vec3::{vec3_, color, Color, point3, Vec3, Point3};
 use crate::ray::{Ray};
 use crate::sphere::{Sphere, hit_sphere_10, hit_sphere_11, hit_sphere_12};
 use crate::camera::Camera;
 use crate::vec3_img::color_no_gamma;
-use crate::material::{Lambertian, Metal};
+use crate::material::{Lambertian, Metal, Material};
 
 use std::time::Instant;
 
 
 fn main() {
-    let listing_num = 55;
+    let listing_num = 66;
 
     match  listing_num {
+        n  if n < 0 => _use_some_funs(),
         1 => listing_1(),
         7 => listing_7(),
         n if n>=9 && n <= 24 => listing_9_24(n),
         n if n >= 30 => listing_30_(n),
-        n  if n < 0 => _use_some_funs(),
         _ =>  panic!("listing_num: {} out of range", listing_num)
     }
 }
-
 
 
 fn listing_30_(listing_num: i32) {
     // sampling many rays per Pixel
     let world = match listing_num {
         n if n <= 48 => two_sphere_world(),
-        n if n >= 49 && n < 55 => three_sphere_world_50(),
-        n if n >= 55 => three_sphere_world_50(),
+        n if n >= 49 && n < 52 => four_sphere_world_50(),
+        n if n >= 52 && n < 55 => four_sphere_world_52(),
+        n if n >= 55 && n < 60 => four_sphere_world_55(),
+        n if n >= 60 && n < 65 => four_sphere_world_60(),
+        n if n >= 65 => four_sphere_world_65(),
         _ => panic!("Can't make world for {}", listing_num)
     };
 
     let aspect_ratio = 16.0 / 9.0;
-    let img_width = 400;
+    let img_width = 1170;
     let img_height = ((img_width as f64) / aspect_ratio) as u32;
     let samples_per_pixel = 100;
 
-    let camera = Camera::default();
+    let camera = match listing_num {
+        n if n < 65 =>  Camera::default(),
+        65 => Camera::from_lookfrom_at(point3(-2., 2., 1.),
+                point3(0., 0., -1.),
+                vec3_(0., 1., 0.),
+                90.0, aspect_ratio),
+        66 => Camera::from_lookfrom_at(point3(-2., 2., 1.),
+                    point3(0., 0., -1.),
+                vec3_(0., 1., 0.),
+                20.0, aspect_ratio),
+        _ => Camera::default()
+    };
+
     let depth = 50;
 
     let now = Instant::now();
@@ -93,36 +108,79 @@ fn listing_30_(listing_num: i32) {
 }
 
 
-fn three_sphere_world_52() -> HittableList {
-    let material_ground = Lambertian::new(0.8, 0.8, 0.0);
-    let material_center = Lambertian::new(0.7, 0.3, 0.3);
-    let material_left = Metal::new(&color(0.8, 0.8, 0.8), 0.3);
-    let material_right = Metal::new(&color(0.8, 0.6, 0.2), 1.0);
+fn four_sphere_world_65() -> HittableList {
 
-    let world = hittable_list(&vec![
-        Sphere::new(point3( 0., -100.5, -1.0), 100.0, material_ground),
-        Sphere::new(point3( 0.,   0.0, -1.0), 0.5, material_center),
-        Sphere::new(point3(-1.,   0.0, -1.0), 0.5, material_left),
-        Sphere::new(point3( 1.,   0.0, -1.0), 0.5, material_right)
-    ]);
-    world
+    four_spheres_given_mats_60(
+        Lambertian::new(0.8, 0.8, 0.0),
+        Lambertian::new(0.1, 0.2, 0.5),
+        Dielectric::new(1.5),
+        Metal::new_rgb(0.8, 0.6, 0.2)
+    )
 }
 
 
-fn three_sphere_world_50() -> HittableList {
+fn four_sphere_world_60() -> HittableList {
+
+    four_spheres_given_mats_60(
+        Lambertian::new(0.8, 0.8, 0.0),
+        Dielectric::new(1.5),
+        Dielectric::new(1.5),
+        Metal::new_rgb(0.8, 0.6, 0.2)
+    )
+}
+
+fn four_sphere_world_55() -> HittableList {
+
+    four_spheres_given_mats(
+        Lambertian::new(0.8, 0.8, 0.0),
+        Dielectric::new(1.5),
+        Dielectric::new(1.5),
+        Metal::new_rgb(0.8, 0.6, 0.2)
+    )
+}
+
+fn four_sphere_world_52() -> HittableList {
+    four_spheres_given_mats(Lambertian::new(0.8, 0.8, 0.0),
+            Lambertian::new(0.7, 0.3, 0.3),
+            Metal::new(&color(0.8, 0.8, 0.8), 0.3),
+            Metal::new(&color(0.8, 0.6, 0.2), 1.0))
+}
+
+
+fn four_sphere_world_50() -> HittableList {
     let material_ground = Lambertian::new(0.8, 0.8, 0.0);
     let material_center = Lambertian::new(0.7, 0.3, 0.3);
     let material_left = Metal::new_rgb(0.8, 0.8, 0.8);
     let material_right = Metal::new_rgb(0.8, 0.6, 0.2);
 
-    let world = hittable_list(&vec![
-        Sphere::new(point3( 0., -100.5, -1.0), 100.0, material_ground),
-        Sphere::new(point3( 0.,   0.0, -1.0), 0.5, material_center),
-        Sphere::new(point3(-1.,   0.0, -1.0), 0.5, material_left),
-        Sphere::new(point3( 1.,   0.0, -1.0), 0.5, material_right)
-    ]);
-    world
+    four_spheres_given_mats(material_ground, material_center,
+        material_left, material_right)
 }
+
+
+fn four_spheres_given_mats(mat_ground: Shared<dyn Material>, mat_center: Shared<dyn Material>,
+                           mat_left: Shared<dyn Material>, mat_right: Shared<dyn Material>) -> HittableList {
+    hittable_list(&vec![
+        Sphere::new(point3( 0., -100.5, -1.0), 100.0, mat_ground),
+        Sphere::new(point3( 0.,   0.0, -1.0), 0.5, mat_center),
+        Sphere::new(point3(-1.,   0.0, -1.0), 0.5, mat_left),
+        Sphere::new(point3( 1.,   0.0, -1.0), 0.5, mat_right)
+    ])
+}
+
+fn four_spheres_given_mats_60(mat_ground: Shared<dyn Material>,
+                           mat_center: Shared<dyn Material>,
+                           mat_left: Shared<dyn Material>,
+                           mat_right: Shared<dyn Material>) -> HittableList {
+    hittable_list(&vec![
+        Sphere::new(point3( 0., -100.5, -1.0), 100.0, mat_ground),
+        Sphere::new(point3( 0.,   0.0, -1.0), 0.5, mat_center),
+        Sphere::new(point3(-1.,   0.0, -1.0), 0.5, mat_left.clone()),
+        Sphere::new(point3(-1.,   0.0, -1.0), -0.45, mat_left),
+        Sphere::new(point3( 1.,   0.0, -1.0), 0.5, mat_right)
+    ])
+}
+
 
 
 fn ray_color_49(ray: &Ray, rng: &mut ThreadRng, world: &dyn Hittable, depth: i32) -> Color {
@@ -132,7 +190,7 @@ fn ray_color_49(ray: &Ray, rng: &mut ThreadRng, world: &dyn Hittable, depth: i32
 
     if world.hit(ray, 0.001, INF, &mut rec) {
         if let Some(s_rec) = rec.material.scatter(&ray, &rec, rng) {
-            &s_rec.attenuation * &ray_color_49(&s_rec.scattered, rng,  world, depth - 1)
+            &s_rec.attenuation * &ray_color_49(&s_rec.scattered, rng, world, depth - 1)
         } else {
             color(0., 0., 0.)
         }
@@ -345,16 +403,18 @@ fn ray_color_with_shaded_sphere_12(ray: &Ray) -> Color {
 fn _use_some_funs() {
     // function to use some other functions and avoid warnings `xyz` is never used
     let mut rng = rand::thread_rng();
-    println!( "{} {} {} {:?} {}",
+    println!( "{} {} {} {:?} {} {:?}",
              degrees_to_radians(90.0),
              random_unif(&mut rng, 0., 1.0),
              clamp(3.0, 1.0, 2.0),
              color_no_gamma(1.0, 1.0, 1.0),
-             three_sphere_world_52().objects.len());
+             four_sphere_world_52().objects.len(),
+             Camera::from_vfov_aspect(90.0, 16.0 / 9.0));
 
     let sph1 = Sphere::new_cr(point3(0., 0., 0.), 1.0);
     let hittable_list = hittable_single(sph1);
-    println!("{}", hittable_list.objects.len())
+    println!("hittable_list len: {}", hittable_list.objects.len());
+    vec3::test_refract()
 
 
 }

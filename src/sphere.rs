@@ -34,10 +34,10 @@ impl Hittable for Sphere {
             false
         } else {
             let sqrtd = discriminant.sqrt();
-            let root = (-half_b - sqrtd)/a;
+            let mut root = (-half_b - sqrtd)/a;
 
             if root < t_min || t_max < root {
-                let root = (-half_b + sqrtd) / a;
+                root = (-half_b + sqrtd) / a;
                 if root < t_min || t_max < root {
                     return false
                 }
