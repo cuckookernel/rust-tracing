@@ -1,6 +1,6 @@
 
 use std::{ops::{AddAssign, MulAssign, DivAssign, Add, Mul, Div, Sub, Neg}, fmt::Debug};
-use crate::rtweekend::{random_unif, random_unif_1};
+use crate::rtweekend::{random_unif};
 use rand::rngs::ThreadRng;
 
 
@@ -234,9 +234,9 @@ impl Vec3 {
 
     pub fn rand_in_sphere_1(rng: &mut ThreadRng) -> Self {
         loop {
-            let vec = vec3_(random_unif_1(rng),
-                                  random_unif_1(rng),
-                                  random_unif_1(rng));
+            let vec = vec3_(random_unif(rng, -1.0, 1.0),
+                                  random_unif(rng, -1.0, 1.0),
+                                  random_unif(rng, -1.0, 1.0));
             if vec.length_squared() >= 1.0 {
                 continue
             } else {
@@ -258,6 +258,22 @@ impl Vec3 {
 
     pub fn random_unit_vector(rng: &mut ThreadRng) -> Self {
         Self::rand_in_sphere_1(rng).unit_vector()
+    }
+
+    // listint 68
+    pub fn random_in_disk_1(rng: &mut ThreadRng) -> Self {
+        loop {
+            let p = vec3_(
+                random_unif(rng, -1., 1.),
+                random_unif(rng, -1.0, 1.0),
+                0.0
+            );
+            if p.length_squared() >= 1.0 {
+                continue
+            } else {
+                return p
+            }
+        }
     }
 
     // listing 45
@@ -356,3 +372,13 @@ pub mod tests {
 
 pub type Point3 = Vec3;
 pub type Color = Vec3;
+
+impl Color {
+    pub fn random(rng: &mut ThreadRng, min: f64, max: f64) -> Self {
+        Color{
+            x: random_unif(rng, min, max),
+            y: random_unif(rng, min, max),
+            z: random_unif(rng, min, max)
+        }
+    }
+}

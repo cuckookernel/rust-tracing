@@ -8,6 +8,9 @@ mod rtweekend;
 mod camera;
 mod material;
 
+use std::ops::Range;
+
+use camera::CameraWithFocus;
 use hittable::HittableList;
 use image::ImageBuffer;
 use material::Dielectric;
@@ -23,22 +26,128 @@ use crate::material::{Lambertian, Metal, Material};
 
 use std::time::Instant;
 
-
 fn main() {
-    let listing_num = 66;
+    let listing_num = 71;
+
+    let rp = RenderParams::new(16.0/6.0, 400, 100);
 
     match  listing_num {
         n  if n < 0 => _use_some_funs(),
         1 => listing_1(),
         7 => listing_7(),
         n if n>=9 && n <= 24 => listing_9_24(n),
-        n if n >= 30 => listing_30_(n),
+        n if n >= 30 && n < 69 => listing_30_68(n, rp),
+        n if n >= 30 && n < 69 => listing_30_68(n, rp),
+        n if n >= 30 && n < 69 => listing_69_(n, rp),
+        69  => {
+            let rp = RenderParams::new(16.0/6.0, 400, 100);
+            listing_69_(listing_num, rp)
+        },
+        70 => {
+            let rp = RenderParams::new(3.0/2.0, 1200, 500);
+            listing_69_(listing_num, rp)
+        },
+        71 => {
+            let rp = RenderParams::new(3.0/2.0, 900, 200);
+            listing_69_(listing_num, rp)
+        }
         _ =>  panic!("listing_num: {} out of range", listing_num)
+    };
+}
+
+
+struct RenderParams {
+    aspect_ratio: f64,
+    img_width: u32,
+    img_height: u32,
+    samples_per_pixel: i32,
+    depth: i32
+}
+
+impl RenderParams {
+    fn new(aspect_ratio: f64, img_width: u32, samples_per_pixel: i32)-> Self {
+        RenderParams {
+            aspect_ratio,
+            img_width,
+            img_height: ((img_width as f64) / aspect_ratio) as u32,
+            samples_per_pixel,
+            depth: 50
+        }
     }
 }
 
 
-fn listing_30_(listing_num: i32) {
+fn listing_69_(listing_num: i32, rp: RenderParams) {
+    let mut rng = rand::thread_rng();
+
+    let world = match listing_num {
+        69 => four_sphere_world_65(),
+        70 => many_sphere_world_70(&mut rng),
+        71 => marble_v1(&mut rng),
+        _ => panic!("Can't make world for {}", listing_num)
+    };
+
+
+    let camera = match listing_num {
+        n if (n == 70)|| (n == 71) => {
+            CameraWithFocus::new(
+                &point3(13., 2., 3.),
+                &point3(0.,0.,0.),
+                vec3_(0.,1.,0.),
+                20.0,
+                rp.aspect_ratio, 0.1, 10.0
+            )
+        },
+        _ => {
+            let lookfrom = point3(3., 3., 2.);
+            let lookat = point3(0., 0., -1.);
+            CameraWithFocus::new(
+                &lookfrom,
+                &lookat,
+                vec3_(0., 1., 0.),
+                20.0,
+                rp.aspect_ratio,
+                2.0,
+                (&lookfrom - &lookat).length())
+        }
+    };
+
+    let now = Instant::now();
+    let img =
+        ImageBuffer::from_fn(rp.img_width, rp.img_height,
+         |i, j| {
+            let mut pixel_color = color(0., 0., 0.);
+            for _ in 0..rp.samples_per_pixel {
+                let u = (i as f64 + random_unif_1(&mut rng))
+                              / (rp.img_width - 1) as f64;
+                let v = ((rp.img_height - j) as f64 + random_unif_1(&mut rng))
+                              / (rp.img_height - 1) as f64;
+                let ray = camera.get_ray(u, v, &mut rng);
+
+                let ray_color = match listing_num {
+                    n if n <= 70 => ray_color_49(&ray, &mut rng, &world, rp.depth),
+                    n if n >= 71 => ray_color_71(&ray, &mut rng, &world, rp.depth),
+                    _ => panic!("this can't happen")
+                };
+
+                pixel_color += &ray_color;
+            }
+            pixel_color.to_rgb_sampled(rp.samples_per_pixel)
+        });
+    let elapsed = now.elapsed();
+
+    let mps = (rp.img_width * rp.img_height) as f64 / 1.0e6;
+    let outfn = format!("generated_imgs/listing_{}.png", listing_num);
+    println!("Elapsed: {:.2?} ({:.0?} ms / megapixel) - writing image to {}",
+             elapsed,  elapsed.as_secs_f64() * 1000.0 /mps, outfn);
+
+    //img.save("generated_imgs/listing_9.png").unwrap();
+    img.save(outfn).unwrap();
+
+}
+
+
+fn listing_30_68(listing_num: i32, rp: RenderParams) {
     // sampling many rays per Pixel
     let world = match listing_num {
         n if n <= 48 => two_sphere_world(),
@@ -50,54 +159,48 @@ fn listing_30_(listing_num: i32) {
         _ => panic!("Can't make world for {}", listing_num)
     };
 
-    let aspect_ratio = 16.0 / 9.0;
-    let img_width = 1170;
-    let img_height = ((img_width as f64) / aspect_ratio) as u32;
-    let samples_per_pixel = 100;
-
     let camera = match listing_num {
         n if n < 65 =>  Camera::default(),
         65 => Camera::from_lookfrom_at(point3(-2., 2., 1.),
                 point3(0., 0., -1.),
                 vec3_(0., 1., 0.),
-                90.0, aspect_ratio),
+                90.0, rp.aspect_ratio),
         66 => Camera::from_lookfrom_at(point3(-2., 2., 1.),
                     point3(0., 0., -1.),
                 vec3_(0., 1., 0.),
-                20.0, aspect_ratio),
+                20.0, rp.aspect_ratio),
         _ => Camera::default()
     };
 
-    let depth = 50;
 
     let now = Instant::now();
     let mut rng = rand::thread_rng();
     let img =
-        ImageBuffer::from_fn(img_width, img_height,
+        ImageBuffer::from_fn(rp.img_width, rp.img_height,
          |i, j| {
             let mut pixel_color = color(0., 0., 0.);
-            for _ in 0..samples_per_pixel {
+            for _ in 0..rp.samples_per_pixel {
                 let u = (i as f64 + random_unif_1(&mut rng))
-                              / (img_width - 1) as f64;
-                let v = ((img_height - j) as f64 + random_unif_1(&mut rng))
-                              / (img_height - 1) as f64;
+                              / (rp.img_width - 1) as f64;
+                let v = ((rp.img_height - j) as f64 + random_unif_1(&mut rng))
+                              / (rp.img_height - 1) as f64;
                 let ray = camera.get_ray(u, v);
 
                 match listing_num {
                    30 => pixel_color += &ray_color_24(&ray, &world),
                    33 => pixel_color += &ray_color_33(&ray, &mut rng, &world),
-                   36 => pixel_color += &ray_color_36(&ray, &mut rng, &world, depth),
-                   38 => pixel_color += &ray_color_38(&ray, &mut rng, &world, depth),
-                   n if n >= 49  => pixel_color += &ray_color_49(&ray, &mut rng, &world, depth),
+                   36 => pixel_color += &ray_color_36(&ray, &mut rng, &world, rp.depth),
+                   38 => pixel_color += &ray_color_38(&ray, &mut rng, &world, rp.depth),
+                   n if n >= 49  => pixel_color += &ray_color_49(&ray, &mut rng, &world, rp.depth),
                    _ => panic!("can't trace rays for listing_num: {}", listing_num)
                 }
 
             }
-            pixel_color.to_rgb_sampled(samples_per_pixel)
+            pixel_color.to_rgb_sampled(rp.samples_per_pixel)
         });
     let elapsed = now.elapsed();
 
-    let mps = (img_width * img_height) as f64 / 1.0e6;
+    let mps = (rp.img_width * rp.img_height) as f64 / 1.0e6;
     let outfn = format!("generated_imgs/listing_{}.png", listing_num);
     println!("Elapsed: {:.2?} ({:.0?} ms / megapixel) - writing image to {}",
              elapsed,  elapsed.as_secs_f64() * 1000.0 /mps, outfn);
@@ -106,6 +209,77 @@ fn listing_30_(listing_num: i32) {
     img.save(outfn).unwrap();
 
 }
+
+
+fn marble_v1(rng: &mut ThreadRng) -> HittableList {
+    let mut world = hittable_list( &vec![] );
+
+    let glass = Dielectric::new(1.5);
+
+    let rc = 2.0;
+    world.add(Sphere::new(point3(0., 0.,0.), rc, glass));
+
+
+
+    for _i in (Range{start: 0, end: 50}) {
+        let center = (rc - 0.5) * Vec3::rand_in_sphere_1(rng);
+        let albedo = Color::random(rng, 0.5, 1.0);
+        let metal = Metal::new(&albedo, 0.1);
+
+        world.add(Sphere::new(center, 0.15, metal));
+    }
+    world
+}
+
+fn many_sphere_world_70(rng: &mut ThreadRng) -> HittableList {
+    let mut world = hittable_list( &vec![] );
+
+    let ground_material = Lambertian::new(0.5, 0.5, 0.5);
+
+    world.add(Sphere::new(point3(0.,-1000.,0.), 1000.0, ground_material));
+
+    for a in (Range{start: -11, end: 11}) {
+        for b in (Range{start: -11, end: 11}) {
+            let choose_mat = random_unif_1(rng);
+            let center =  point3(
+                (a as f64) + 0.9 * random_unif_1(rng),
+                0.2, (b as f64) + 0.9 * random_unif_1(rng));
+
+            if (&center - point3(4., 0.2, 0.)).length() > 0.9 {
+
+                if choose_mat < 0.8 {
+                    // diffuse
+                    let albedo = &Color::random(rng, 0., 1.0)
+                                       * &Color::random(rng, 0., 1.0);
+                    let sphere_material = Lambertian::with_color(albedo);
+                    world.add(Sphere::new(center, 0.2, sphere_material));
+                } else if choose_mat < 0.95 {
+                    // metal
+                    let albedo = Color::random(rng, 0.5, 1.0);
+                    let fuzz = random_unif(rng, 0., 0.5);
+                    let sphere_material = Metal::new(&albedo, fuzz);
+                    world.add(Sphere::new(center, 0.2, sphere_material));
+                } else {
+                    // glass
+                    let sphere_material = Dielectric::new(1.5);
+                    world.add(Sphere::new(center, 0.2, sphere_material));
+                }
+            }
+        }
+    }
+
+    let material1 = Dielectric::new(1.5);
+    world.add(Sphere::new(point3(0., 1., 0.), 1.0, material1));
+
+    let material2 = Lambertian::new(0.4, 0.2, 0.1);
+    world.add(Sphere::new(point3(-4.0, 1.0, 0.), 1.0, material2));
+
+    let material3 = Metal::new(&point3(0.7, 0.6, 0.5), 0.0);
+    world.add(Sphere::new(point3(4.0, 1.0, 0.0), 1.0, material3));
+
+    world
+}
+
 
 
 fn four_sphere_world_65() -> HittableList {
@@ -183,6 +357,30 @@ fn four_spheres_given_mats_60(mat_ground: Shared<dyn Material>,
 
 
 
+fn ray_color_71(ray: &Ray, rng: &mut ThreadRng, world: &dyn Hittable, depth: i32) -> Color {
+    // listing 38: true lambertian reflection
+    let mut rec = HitRecord::default();
+    if depth <= 0 { return color(0., 0., 0.)}
+
+    if world.hit(ray, 0.001, INF, &mut rec) {
+        if let Some(s_rec) = rec.material.scatter(&ray, &rec, rng) {
+            &s_rec.attenuation * &ray_color_49(&s_rec.scattered, rng, world, depth - 1)
+        } else {
+            color(0., 0., 0.)
+        }
+
+    } else {
+
+        if ray.dir.z > 0.0 {
+            color(1.0, 1.0, 1.0)
+        } else {
+            color(0., 0., 0.)
+        }
+
+    }
+}
+
+
 fn ray_color_49(ray: &Ray, rng: &mut ThreadRng, world: &dyn Hittable, depth: i32) -> Color {
     // listing 38: true lambertian reflection
     let mut rec = HitRecord::default();
@@ -199,6 +397,7 @@ fn ray_color_49(ray: &Ray, rng: &mut ThreadRng, world: &dyn Hittable, depth: i32
         ray_color_background(ray)
     }
 }
+
 
 
 fn ray_color_38(ray: &Ray, rng: &mut ThreadRng,

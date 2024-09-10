@@ -43,6 +43,14 @@ pub struct HittableList {
     pub objects: Vec<SharedHittable>
 }
 
+
+
+impl HittableList {
+    pub fn add(&mut self, obj: SharedHittable) {
+        self.objects.push(obj.clone())
+    }
+}
+
 pub fn hittable_single(object: SharedHittable) -> HittableList {
     HittableList{ objects: vec![object] }
 }
@@ -52,6 +60,8 @@ pub fn hittable_list(objects: &Vec<SharedHittable>) -> HittableList {
 }
 
 impl Hittable for HittableList {
+
+
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         let mut temp_rec = HitRecord{..Default::default()};
         let mut hit_anything = false;

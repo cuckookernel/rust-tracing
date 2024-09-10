@@ -22,6 +22,10 @@ impl Lambertian {
     pub fn new(r: f64, g: f64, b: f64) -> Shared<dyn Material> {
         return Shared::new( Lambertian {albedo: color(r,g,b)} )
     }
+
+    pub fn with_color(color: Vec3) -> Shared<dyn Material> {
+        return Shared::new( Lambertian {albedo: color} )
+    }
 }
 
 impl Material for Lambertian {
